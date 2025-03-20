@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { FaClock, FaVideo, FaBookmark, FaRegBookmark } from "react-icons/fa";
-import toast from "react-hot-toast";
+import { FaClock, FaExternalLinkAlt } from "react-icons/fa";
 
 const API_KEY = "2d252b84482c405593f16c6c03c1e7f1c34a0e50";
 
@@ -27,20 +26,19 @@ export default function PastContestsPage() {
   const [filter, setFilter] = useState(["All"]);
   const [loading, setLoading] = useState(true);
   const [pastContests, setPastContests] = useState([]);
-  const [bookmarks, setBookmarks] = useState([]);
 
   useEffect(() => {
     async function fetchPastContests() {
       try {
         const today = new Date();
-        const fourteenDaysAgo = new Date();
-        fourteenDaysAgo.setDate(today.getDate() - 14);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
 
         const todayStr = today.toISOString().split("T")[0];
-        const fourteenDaysAgoStr = fourteenDaysAgo.toISOString().split("T")[0];
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0];
 
         const response = await axios.get(
-          `https://clist.by/api/v4/contest/?start__gte=${fourteenDaysAgoStr}&start__lte=${todayStr}&format=json&order_by=-start&limit=50&resource_id__in=1,2,93,102`,
+          `https://clist.by/api/v4/contest/?start__gte=${sevenDaysAgoStr}&start__lte=${todayStr}&format=json&order_by=-start&limit=50&resource_id__in=1,2,93,102`,
           {
             headers: {
               Authorization: `ApiKey sanjeet:${API_KEY}`,
@@ -54,8 +52,6 @@ export default function PastContestsPage() {
             title: contest.event,
             platform: mapPlatform(contest.resource),
             date: contest.start,
-            end: contest.end,
-            duration: contest.duration,
             url: contest.href,
           }));
           setPastContests(pastContestList);
@@ -85,19 +81,6 @@ export default function PastContestsPage() {
     }
   };
 
-  const toggleBookmark = (id) => {
-    setBookmarks((prev) => {
-      const isBookmarked = prev.includes(id);
-      if (isBookmarked) {
-        toast.error("🔕 Bookmark removed!");
-        return prev.filter((b) => b !== id);
-      } else {
-        toast.success("🔖 Bookmarked!");
-        return [...prev, id];
-      }
-    });
-  };
-
   const filteredContests =
     filter.includes("All")
       ? pastContests
@@ -106,12 +89,15 @@ export default function PastContestsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
       {/* Filter Buttons */}
-      <div className="container mx-auto flex justify-center gap-2 sm:gap-4 py-4 flex-wrap px-4">
+      <h1 className="text-4xl font-bold text-white mb-4 text-center py-8 items-center justify-center flex">
+        🎯 Past Contests (Last 7 Days)
+      </h1>
+      <div className="flex justify-center space-x-4 mb-8">
         <button
           onClick={() => togglePlatform("All")}
           className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${filter.includes("All")
-              ? "bg-blue-500 text-white"
-              : "bg-white/20 text-gray-300 hover:bg-white/30"
+            ? "bg-blue-500 text-white"
+            : "bg-white/20 text-gray-300 hover:bg-white/30"
             }`}
         >
           All
@@ -121,8 +107,8 @@ export default function PastContestsPage() {
             key={p}
             onClick={() => togglePlatform(p)}
             className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${filter.includes(p)
-                ? "bg-blue-500 text-white"
-                : "bg-white/20 text-gray-300 hover:bg-white/30"
+              ? "bg-blue-500 text-white"
+              : "bg-white/20 text-gray-300 hover:bg-white/30"
               }`}
           >
             {p}
@@ -137,9 +123,9 @@ export default function PastContestsPage() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.8 }}
         >
-          <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
-            🎯 Past Contests (Last 14 Days)
-          </h2>
+          {/* <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+            🎯 Past Contests (Last 7 Days)
+          </h2> */}
           {loading ? (
             <p className="text-center text-gray-400">Loading past contests...</p>
           ) : (
@@ -158,24 +144,21 @@ export default function PastContestsPage() {
                       </h3>
                       <p className="flex items-center text-xs sm:text-sm text-gray-300 gap-2">
                         <FaClock className="text-blue-500" />{" "}
-                        {new Date(contest.date).toLocaleString()}
+                        {new Intl.DateTimeFormat("en-IN", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                          timeZone: "Asia/Kolkata", // target timezone
+                        }).format(new Date(contest.date + "Z"))}
                       </p>
                       <p className="mt-1 text-xs text-blue-400">
                         {contest.platform}
                       </p>
                     </div>
 
-                    {/* Icon Container pinned to bottom */}
-                    <div className="flex items-center space-x-4 pt-4 mt-auto">
-                      <button onClick={() => toggleBookmark(contest.id)}>
-                        {bookmarks.includes(contest.id) ? (
-                          <FaBookmark className="text-blue-500 hover:text-gray-400 transition" />
-                        ) : (
-                          <FaRegBookmark className="text-gray-400 hover:text-blue-500 transition" />
-                        )}
-                      </button>
+                    {/* Consistent Link Icon */}
+                    <div className="flex items-center justify-end pt-4 mt-auto">
                       <a href={contest.url} target="_blank" rel="noopener noreferrer">
-                        <FaVideo className="text-gray-400 hover:text-blue-500 transition" />
+                        <FaExternalLinkAlt className="text-gray-400 hover:text-blue-500 transition text-lg" />
                       </a>
                     </div>
                   </motion.div>

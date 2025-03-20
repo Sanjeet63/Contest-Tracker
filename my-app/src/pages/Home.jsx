@@ -41,6 +41,7 @@ export default function HomePage() {
   const [selectedContest, setSelectedContest] = useState(null);
   const [reminderSetFor, setReminderSetFor] = useState([]);
 
+
   useEffect(() => {
     async function fetchContests() {
       try {
@@ -86,6 +87,29 @@ export default function HomePage() {
     fetchContests();
     fetchBookmarks();
   }, [userId]);
+
+  const [now, setNow] = useState(new Date());
+
+  // To update every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const getTimeLeft = (startTime) => {
+    const start = new Date(startTime + "Z");
+    const diff = start - now;
+
+    if (diff <= 0) return "Started";
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    return `${hours}h ${minutes}m ${seconds}s`;
+  };
+
 
   const togglePlatform = (platform) => {
     if (platform === "All") {
@@ -147,16 +171,21 @@ export default function HomePage() {
     setShowDialog(true);
   };
 
-  const handleSetReminder = (minutes) => {
-    if (!reminderSetFor.includes(selectedContest.id)) {
-      setReminderSetFor((prev) => [...prev, selectedContest.id]);
-      toast.success(
-        `🔔 Reminder set for ${minutes} minutes before "${selectedContest.title}".`
-      );
+  const handleSetReminder = ({ email, time }) => {
+    if (reminderSetFor.includes(selectedContest.id)) {
+      toast.error("Reminder already set for this contest!");
     } else {
-      toast.error(
-        "❌ Reminder already set! You can only set a one-time reminder for each contest."
-      );
+      setReminderSetFor((prev) => [...prev, selectedContest.id]);
+
+      // mock api
+      axios.post("http://localhost:5000/api/reminder/add", {
+        contestId: selectedContest.id,
+        contestTitle: selectedContest.title,
+        email,
+        minutesBefore: time,
+      });
+
+      toast.success(`Reminder set! We'll email ${email} ${time} mins before.`);
     }
     setShowDialog(false);
     setSelectedContest(null);
@@ -169,18 +198,17 @@ export default function HomePage() {
   return (
 
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <h1 className="text-4xl font-bold text-white mb-4 text-center py-8">
-            🚩 Upcoming Contests
-          </h1>
+      <h1 className="text-4xl font-bold text-white mb-4 text-center py-8 items-center justify-center flex">
+        🚩 Upcoming Contests
+      </h1>
       {/* Filter Buttons */}
-      <div className="flex justify-center space-x-4 mb-8">
+      <div className="flex justify-center space-x-3 mb-10 flex-wrap">
         <button
           onClick={() => togglePlatform("All")}
-          className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${
-            filter.includes("All")
-              ? "bg-pink-500 text-white"
-              : "bg-white/20 text-gray-300 hover:bg-white/30"
-          }`}
+          className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${filter.includes("All")
+            ? "bg-pink-500 text-white"
+            : "bg-white/20 text-gray-300 hover:bg-white/30"
+            }`}
         >
           All
         </button>
@@ -188,11 +216,10 @@ export default function HomePage() {
           <button
             key={p}
             onClick={() => togglePlatform(p)}
-            className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${
-              filter.includes(p)
-                ? "bg-pink-500 text-white"
-                : "bg-white/20 text-gray-300 hover:bg-white/30"
-            }`}
+            className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${filter.includes(p)
+              ? "bg-pink-500 text-white"
+              : "bg-white/20 text-gray-300 hover:bg-white/30"
+              }`}
           >
             {p}
           </button>
@@ -226,34 +253,48 @@ export default function HomePage() {
                       </h3>
                       <p className="flex items-center text-xs sm:text-sm text-gray-300 gap-2">
                         <FaClock className="text-pink-500" />{" "}
-                        {new Date(contest.date).toLocaleString()}
-                      </p>
-                      <p className="mt-1 text-xs text-pink-400">
-                        {contest.platform}
+                        {new Intl.DateTimeFormat("en-IN", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                          timeZone: "Asia/Kolkata", // target timezone
+                        }).format(new Date(contest.date + "Z"))}
                       </p>
                     </div>
 
                     {/* Icons */}
                     <div className="flex items-center space-x-4 pt-4 mt-auto">
+                      <p className="flex items-center text-xs sm:text-sm text-yellow-400 gap-2 mt-1">
+                        ⏳ {getTimeLeft(contest.date)}
+                      </p>
                       <button
                         onClick={() => handleBookmark(contest)}
                         disabled={bookmarked.includes(contest.id)}
                       >
                         <FaBookmark
-                          className={`${
-                            bookmarked.includes(contest.id)
-                              ? "text-pink-500"
-                              : "text-gray-400"
-                          } hover:text-pink-500 transition`}
+                          className={`${bookmarked.includes(contest.id)
+                            ? "text-pink-500"
+                            : "text-gray-400"
+                            } hover:text-pink-500 transition`}
                         />
                       </button>
 
                       <button onClick={() => openReminderDialog(contest)}>
                         {reminderSetFor.includes(contest.id) ? (
-                          <FaBellSlash className="text-pink-500 hover:text-gray-400 transition" />
+                          <button
+                            disabled
+                            className="flex items-center gap-1 text-gray-400 cursor-not-allowed"
+                          >
+                            <FaBellSlash /> Reminder Set
+                          </button>
                         ) : (
-                          <FaBell className="text-gray-400 hover:text-pink-500 transition" />
+                          <button
+                            onClick={() => openReminderDialog(contest)}
+                            className="flex items-center gap-1 hover:text-pink-400"
+                          >
+                            <FaBell /> Remind Me
+                          </button>
                         )}
+
                       </button>
                       <a
                         href={contest.url}
