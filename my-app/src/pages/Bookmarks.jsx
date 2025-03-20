@@ -1,135 +1,122 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { FaClock, FaTimesCircle, FaExternalLinkAlt, FaSort } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { Trash2, Globe } from "lucide-react";
 
-const mockBookmarks = [
-  { id: 1, title: "Codeforces Round #919", platform: "Codeforces", date: "2025-03-21", url: "/contest/1", added: "2025-03-10" },
-  { id: 2, title: "LeetCode Biweekly #100", platform: "LeetCode", date: "2025-03-22", url: "/contest/2", added: "2025-03-12" },
-  { id: 3, title: "CodeChef Starters 128", platform: "CodeChef", date: "2025-03-26", url: "/contest/3", added: "2025-03-11" },
-];
+const categories = ["all", "codeforces", "leetcode", "atcoder", "codechef"];
 
-export default function Bookmarks() {
-  const [bookmarks, setBookmarks] = useState(mockBookmarks);
-  const [filter, setFilter] = useState("All");
-  const [showDialog, setShowDialog] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
-  const [sortBy, setSortBy] = useState("date");
-  const [toast, setToast] = useState("");
+const MyBookmarks = () => {
+  const { userId } = useAuth();
+  const [bookmarks, setBookmarks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState("all");
 
-  const platforms = ["All", "Codeforces", "LeetCode", "CodeChef"];
+  useEffect(() => {
+    const fetchBookmarks = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/bookmarks/get/${userId}`);
+        if (!res.ok) throw new Error("Failed to fetch bookmarks");
+        const data = await res.json();
+        setBookmarks(data);
+      } catch (err) {
+        console.error("Error fetching bookmarks:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filtered = filter === "All" ? bookmarks : bookmarks.filter(b => b.platform === filter);
+    if (userId) fetchBookmarks();
+  }, [userId]);
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === "date") {
-      return new Date(a.date) - new Date(b.date);
-    } else {
-      return new Date(a.added) - new Date(b.added);
+  const handleDelete = async (e, contestId) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/bookmarks/remove?userId=${userId}&contestId=${contestId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (res.ok) {
+        setBookmarks((prev) => prev.filter((c) => c.contestId !== contestId));
+      } else {
+        const data = await res.json();
+        console.error("Server responded with error:", data.message);
+        alert("Error removing bookmark: " + data.message);
+      }
+    } catch (err) {
+      console.error("Error deleting bookmark:", err);
     }
-  });
-
-  const confirmDelete = (id) => {
-    setShowDialog(true);
-    setSelectedId(id);
   };
 
-  const handleDelete = () => {
-    setBookmarks(bookmarks.filter((b) => b.id !== selectedId));
-    setShowDialog(false);
-    setSelectedId(null);
-    setToast("Bookmark removed!");
-    setTimeout(() => setToast(""), 3000);
+  const filteredBookmarks = category === "all"
+    ? bookmarks
+    : bookmarks.filter(b => b.platform.toLowerCase() === category);
+
+  const formatDate = (dateString) => {
+    const options = { year: "numeric", month: "long", day: "numeric", hour: '2-digit', minute: '2-digit' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative px-4 py-12">
-      <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/30 to-pink-600/30 blur-3xl opacity-30"></div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+      <h1 className="text-4xl font-bold text-white mb-4 text-center py-8"> 🔖 My Bookmarks </h1>
 
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 container mx-auto max-w-5xl"
-      >
-        <h1 className="text-4xl font-extrabold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
-          Your Bookmarked Contests
-        </h1>
-
-        <div className="flex flex-wrap justify-center gap-3 mb-8">
-          {platforms.map((p) => (
-            <button
-              key={p}
-              onClick={() => setFilter(p)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                filter === p ? "bg-pink-500 text-white" : "bg-white/20 text-gray-300 hover:bg-white/30"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+      {/* Pills / Tabs */}
+      <div className="flex justify-center space-x-4 mb-8">
+        {categories.map((cat) => (
           <button
-            onClick={() => setSortBy(sortBy === "date" ? "added" : "date")}
-            className="px-4 py-2 rounded-full text-sm font-semibold bg-white/20 text-gray-300 hover:bg-white/30 flex items-center gap-1"
+            key={cat}
+            onClick={() => setCategory(cat)}
+            className={`px-4 py-2 rounded-full font-medium transition ${
+              category === cat
+                ? "bg-pink-500 text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
           >
-            <FaSort /> Sort by {sortBy === "date" ? "Added Date" : "Contest Date"}
+            {cat === "all"
+              ? "All"
+              : cat.charAt(0).toUpperCase() + cat.slice(1)}
           </button>
-        </div>
+        ))}
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {sorted.map((contest) => (
-            <motion.div
-              key={contest.id}
-              whileHover={{ scale: 1.02 }}
-              className="bg-white/10 backdrop-blur-xl p-5 rounded-2xl border border-white/20 relative"
+      {filteredBookmarks.length === 0 ? (
+        <p className="text-center text-gray-400">No contests found in this category.</p>
+      ) : (
+        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 place-items-center py-8">
+          {filteredBookmarks.map((contest) => (
+            <div
+              key={contest.contestId}
+              className="flex flex-col justify-between h-full w-full max-w-xs bg-gradient-to-br from-[#1E1E2E] to-[#151521] backdrop-blur-lg rounded-2xl shadow-2xl p-6 border border-gray-700 hover:scale-105 hover:shadow-2xl transition-transform duration-300"
             >
-              <h3 className="text-xl font-semibold mb-2">{contest.title}</h3>
-              <p className="flex items-center text-sm text-gray-300 gap-2 mb-2">
-                <FaClock className="text-pink-400" /> {new Date(contest.date).toDateString()}
-              </p>
-              <a href={contest.url} className="text-sm text-pink-400 hover:underline flex items-center gap-1">
-                View Details <FaExternalLinkAlt />
-              </a>
+              <div className="space-y-3">
+                <h2 className="text-2xl font-semibold text-white">{contest.name}</h2>
+                <p className="text-sm text-gray-400">Platform: <span className="text-white">{contest.platform}</span></p>
+                <p className="text-sm text-gray-400">Date: <span className="text-white">{formatDate(contest.date)}</span></p>
+                <a
+                  href={contest.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-500 transition text-sm"
+                >
+                  <Globe className="w-4 h-4" /> Visit Contest Page
+                </a>
+              </div>
               <button
-                onClick={() => confirmDelete(contest.id)}
-                className="absolute top-4 right-4 text-pink-400 hover:text-pink-500"
+                type="button"
+                onClick={(e) => handleDelete(e, contest.contestId)}
+                className="mt-6 flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 rounded-2xl hover:from-red-600 hover:to-red-700 transition-all"
               >
-                <FaTimesCircle size={18} />
-              </button>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Custom Dialog */}
-      {showDialog && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 w-80 text-center">
-            <h3 className="text-lg font-semibold mb-4 text-white">Confirm Deletion</h3>
-            <p className="text-sm text-gray-300 mb-6">Are you sure you want to remove this bookmark?</p>
-            <div className="flex justify-between gap-4">
-              <button
-                onClick={handleDelete}
-                className="flex-1 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-xl"
-              >
-                Yes, Remove
-              </button>
-              <button
-                onClick={() => setShowDialog(false)}
-                className="flex-1 py-2 bg-white/20 hover:bg-white/30 text-gray-300 rounded-xl"
-              >
-                Cancel
+                <Trash2 className="w-4 h-4" /> Remove Bookmark
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white px-4 py-2 rounded-xl shadow-lg z-50">
-          {toast}
+          ))}
         </div>
       )}
     </div>
   );
-}
+};
+
+export default MyBookmarks;

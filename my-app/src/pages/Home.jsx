@@ -10,6 +10,7 @@ import {
   FaBellSlash,
 } from "react-icons/fa";
 import ReminderDialog from "../components/ReminderDialog";
+import { useAuth } from "../context/AuthContext";
 
 const API_KEY = "2d252b84482c405593f16c6c03c1e7f1c34a0e50";
 
@@ -30,11 +31,12 @@ const mapPlatform = (resourceStr) => {
 };
 
 export default function HomePage() {
+  const { user, userId } = useAuth();
   const platforms = ["Codeforces", "LeetCode", "AtCoder", "CodeChef"];
   const [filter, setFilter] = useState(["All"]);
   const [loading, setLoading] = useState(true);
   const [contests, setContests] = useState([]);
-  const [bookmarked, setBookmarked] = useState([]);
+  const [bookmarked, setBookmarked] = useState([]); // IDs as string[]
   const [showDialog, setShowDialog] = useState(false);
   const [selectedContest, setSelectedContest] = useState(null);
   const [reminderSetFor, setReminderSetFor] = useState([]);
@@ -52,7 +54,7 @@ export default function HomePage() {
         );
         if (response.data.objects && response.data.objects.length > 0) {
           const upcomingContests = response.data.objects.map((contest) => ({
-            id: contest.id,
+            id: String(contest.id), // Ensure id is string
             title: contest.event,
             platform: mapPlatform(contest.resource),
             date: contest.start,
@@ -68,8 +70,22 @@ export default function HomePage() {
         setLoading(false);
       }
     }
+
+    async function fetchBookmarks() {
+      if (!userId) return;
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/bookmarks/get/${userId}`
+        );
+        setBookmarked(res.data.map((c) => String(c.contestId)));
+      } catch (err) {
+        console.error("❌ Error fetching bookmarks:", err);
+      }
+    }
+
     fetchContests();
-  }, []);
+    fetchBookmarks();
+  }, [userId]);
 
   const togglePlatform = (platform) => {
     if (platform === "All") {
@@ -85,41 +101,46 @@ export default function HomePage() {
       }
     }
   };
-  const handleBookmark = (contest) => {
-    const userId = localStorage.getItem('userId'); // or wherever you store it
 
-    if (!userId) {
-      toast.error('User not logged in!');
+  const handleBookmark = async (contest) => {
+    if (!user) {
+      toast.error("Please login to bookmark contests!");
       return;
     }
 
-    const bookmarkData = {
-      userId,
-      contestId: contest.id,
-      name: contest.title,
-      url: contest.url,
-      date: contest.date,
-      platform: contest.platform
-    };
+    if (bookmarked.includes(contest.id)) {
+      toast.error("⚠️ Contest already bookmarked!");
+      return;
+    }
 
-    addBookmark(bookmarkData, contest.id);
-  };
-
-  const addBookmark = async (bookmarkData, contestId) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/bookmark', bookmarkData); // update URL as per backend
-      if (response.data.success) {
-        setBookmarked((prev) => [...prev, contestId]);
-        toast.success('Contest bookmarked!');
-      } else {
-        toast.error('Bookmark already exists or error occurred!');
+      const payload = {
+        userId: userId,
+        contest: {
+          contestId: contest.id,
+          title: contest.title,
+          platform: contest.platform,
+          date: contest.date,
+          end: contest.end,
+          duration: contest.duration,
+          url: contest.url,
+        },
+      };
+
+      const response = await axios.post(
+        "http://localhost:5000/api/bookmarks/add",
+        payload
+      );
+
+      if (response.status === 201) {
+        setBookmarked((prev) => [...prev, contest.id]);
+        toast.success("✅ Contest bookmarked successfully!");
       }
-    } catch (error) {
-      console.error('Error bookmarking contest:', error);
-      toast.error('Failed to bookmark contest!');
+    } catch (err) {
+      console.error(err);
+      toast.error("❌ Failed to bookmark contest!");
     }
   };
-
 
   const openReminderDialog = (contest) => {
     setSelectedContest(contest);
@@ -130,7 +151,7 @@ export default function HomePage() {
     if (!reminderSetFor.includes(selectedContest.id)) {
       setReminderSetFor((prev) => [...prev, selectedContest.id]);
       toast.success(
-        `🔔 Reminder set for ${minutes} minutes before "${selectedContest.title}". Note: This is a one-time reminder and can't be set again!`
+        `🔔 Reminder set for ${minutes} minutes before "${selectedContest.title}".`
       );
     } else {
       toast.error(
@@ -141,21 +162,25 @@ export default function HomePage() {
     setSelectedContest(null);
   };
 
-
   const filteredContests = filter.includes("All")
     ? contests
     : contests.filter((c) => filter.includes(c.platform));
 
   return (
+
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+      <h1 className="text-4xl font-bold text-white mb-4 text-center py-8">
+            🚩 Upcoming Contests
+          </h1>
       {/* Filter Buttons */}
-      <div className="container mx-auto flex justify-center gap-2 sm:gap-4 py-4 flex-wrap px-4">
+      <div className="flex justify-center space-x-4 mb-8">
         <button
           onClick={() => togglePlatform("All")}
-          className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${filter.includes("All")
-            ? "bg-pink-500 text-white"
-            : "bg-white/20 text-gray-300 hover:bg-white/30"
-            }`}
+          className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${
+            filter.includes("All")
+              ? "bg-pink-500 text-white"
+              : "bg-white/20 text-gray-300 hover:bg-white/30"
+          }`}
         >
           All
         </button>
@@ -163,10 +188,11 @@ export default function HomePage() {
           <button
             key={p}
             onClick={() => togglePlatform(p)}
-            className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${filter.includes(p)
-              ? "bg-pink-500 text-white"
-              : "bg-white/20 text-gray-300 hover:bg-white/30"
-              }`}
+            className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${
+              filter.includes(p)
+                ? "bg-pink-500 text-white"
+                : "bg-white/20 text-gray-300 hover:bg-white/30"
+            }`}
           >
             {p}
           </button>
@@ -180,9 +206,9 @@ export default function HomePage() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.8 }}
         >
-          <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+          {/* <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
             🚩 Upcoming Contests
-          </h2>
+          </h2> */}
           {loading ? (
             <p className="text-center text-gray-400">Loading contests...</p>
           ) : (
@@ -194,7 +220,6 @@ export default function HomePage() {
                     key={contest.id}
                     className="relative flex flex-col justify-between p-6 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 hover:shadow-2xl transition-all h-full"
                   >
-                    {/* Top Content */}
                     <div>
                       <h3 className="text-lg sm:text-xl font-semibold mb-2">
                         {contest.title}
@@ -208,14 +233,18 @@ export default function HomePage() {
                       </p>
                     </div>
 
-                    {/* Icon Container pinned to bottom */}
+                    {/* Icons */}
                     <div className="flex items-center space-x-4 pt-4 mt-auto">
-                      <button onClick={() => handleBookmark(contest)}>
+                      <button
+                        onClick={() => handleBookmark(contest)}
+                        disabled={bookmarked.includes(contest.id)}
+                      >
                         <FaBookmark
-                          className={`${bookmarked.includes(contest.id)
+                          className={`${
+                            bookmarked.includes(contest.id)
                               ? "text-pink-500"
                               : "text-gray-400"
-                            } hover:text-pink-500 transition`}
+                          } hover:text-pink-500 transition`}
                         />
                       </button>
 
@@ -226,15 +255,21 @@ export default function HomePage() {
                           <FaBell className="text-gray-400 hover:text-pink-500 transition" />
                         )}
                       </button>
-                      <a href={contest.url} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={contest.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-auto"
+                      >
                         <FaExternalLinkAlt className="text-gray-400 hover:text-pink-500 transition" />
                       </a>
                     </div>
                   </motion.div>
-
                 ))
               ) : (
-                <p className="text-center text-gray-400">No contests found.</p>
+                <p className="text-center text-gray-400 col-span-full">
+                  No contests found for selected platforms.
+                </p>
               )}
             </div>
           )}
@@ -248,27 +283,6 @@ export default function HomePage() {
           onSetReminder={handleSetReminder}
         />
       )}
-
-      {/* ICON CONTAINER STYLES */}
-      <style jsx>{`
-        .icon-container {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 10px;
-          margin-top: 10px;
-        }
-        .icon-container svg {
-          width: 24px;
-          height: 24px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .icon-container svg:hover {
-          transform: scale(1.2);
-          opacity: 0.9;
-        }
-      `}</style>
     </div>
   );
 }

@@ -19,24 +19,41 @@ export default function Login() {
   }, [user, navigate]);
 
   const handleGoogleLogin = async () => {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    console.log('🔥 Firebase user:', user); // Add this
-    const res = await fetch('/api/auth/google', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-      }),
-    });
-  
-    console.log('📡 Backend response:', await res.json()); // Add this
-  };
+    try {
+      setLoading(true);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      console.log('🔥 Firebase user:', user);
+      
+
+      // Send to backend to create/find user in MongoDB
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+        }),
+      });
+
+      const backendResponse = await res.json();
+      console.log('📡 Backend response:', backendResponse);
+
+      setLoading(false);
+      navigate("/");
+
+    } catch (err) {
+      console.error(err);
+      setError('Google sign-in failed!');
+      setLoading(false);
+    }
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden px-4">

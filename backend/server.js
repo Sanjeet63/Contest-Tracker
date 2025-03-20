@@ -1,80 +1,108 @@
-// import express from "express";
-// import mongoose from "mongoose";
-// import dotenv from "dotenv";
-// import cors from "cors";
-
-// dotenv.config();
-// const app = express();
-
-// app.use(cors({
-//   origin: "http://localhost:5178",
-//   credentials: true,
-// }));
-// app.use(express.json());
-
-// // MongoDB Connection
-// mongoose.connect(process.env.MONGO_URI, { dbName: 'cphub' }) // <-- Ensure dbName is correct here!
-//     .then(() => console.log('✅ MongoDB Connected!'))
-//     .catch(err => console.log('❌ MongoDB Connection Error: ', err));
-
-// // User Schema & Model
-// const userSchema = new mongoose.Schema({
-//     uid: { type: String, required: true, unique: true },
-//     email: { type: String, required: true },
-//     displayName: { type: String },
-//     photoURL: { type: String },
-//   });
-
-// const User = mongoose.model("User", userSchema);
-
-// // Google Auth API route
-// app.post('/api/auth/google', async (req, res) => {
-//     try {
-//         console.log("➡️ Request received on /api/auth/google");
-//         console.log("📦 Request body:", req.body);
-
-//         const { uid, email, displayName, photoURL } = req.body;
-
-//         if (!uid || !email) {
-//             return res.status(400).json({ message: 'Missing uid or email' });
-//         }
-
-//         const existingUser = await User.findOne({ uid });
-//         if (!existingUser) {
-//             const newUser = await User.create({ uid, email, displayName, photoURL });
-//             console.log("✅ User saved to DB:", newUser);
-//         } else {
-//             console.log("ℹ️ User already exists:", existingUser);
-//         }
-
-//         res.status(200).json({ message: 'User processed successfully!' });
-//     } catch (err) {
-//         console.error("❌ Error saving user:", err);
-//         res.status(500).json({ message: 'Error saving user' });
-//     }
-// });
-
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-import express from 'express';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import bookmarkRoutes from './routes/Bookmark.js'; // Pick one consistent route file
+import express from "express";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import cors from "cors";
+import Bookmark from "./models/bookmark.js"; // bookmark model
 
 dotenv.config();
 
 const app = express();
+
+app.use(cors({
+    origin: '*',
+    credentials: true
+}));
 app.use(express.json());
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected!'))
-  .catch(err => console.log(err));
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI, { dbName: 'cphub' })
+    .then(() => console.log('✅ MongoDB Connected!'))
+    .catch(err => console.log('❌ MongoDB Connection Error: ', err));
 
-// Routes
-app.use('/api/bookmarks', bookmarkRoutes);
+// =========================
+// 🔵 Add Bookmark API
+// =========================
+app.post('/api/bookmarks/add', async (req, res) => {
+    try {
+        const { userId, contest } = req.body;
+        if (!userId || !contest || !contest.contestId) {
+            return res.status(400).json({ message: 'Missing userId or contest data' });
+        }
+
+        const bookmarkDoc = await Bookmark.findOne({ userId });
+
+        if (bookmarkDoc) {
+            const alreadyExists = bookmarkDoc.contests.some(c => c.contestId === contest.contestId);
+            if (alreadyExists) {
+                return res.status(400).json({ message: 'Contest already bookmarked!' });
+            }
+            bookmarkDoc.contests.push(contest);
+            await bookmarkDoc.save();
+            return res.status(201).json({ message: 'Bookmark added successfully!', bookmark: bookmarkDoc });
+        } else {
+            // create new doc if user doesn't exist yet
+            const newBookmark = new Bookmark({
+                userId,
+                contests: [contest]
+            });
+            await newBookmark.save();
+            return res.status(201).json({ message: 'Bookmark added successfully!', bookmark: newBookmark });
+        }
+    } catch (err) {
+        console.error("❌ Error adding bookmark:", err);
+        return res.status(500).json({ message: 'Server error while adding bookmark' });
+    }
+});
+
+
+// =========================
+// 🟢 Get Bookmarks API
+// =========================
+app.get('/api/bookmarks/get/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const bookmarkDoc = await Bookmark.findOne({ userId });
+
+        if (!bookmarkDoc) {
+            return res.status(404).json({ message: "No bookmarks found" });
+        }
+
+        return res.status(200).json(bookmarkDoc.contests);
+    } catch (err) {
+        console.error("❌ Error fetching bookmarks:", err);
+        return res.status(500).json({ message: 'Server error while fetching bookmarks' });
+    }
+});
+
+// =========================
+// 🔴 Delete Bookmark API (updated to DELETE + query params)
+// =========================
+app.delete('/api/bookmarks/remove', async (req, res) => {
+    const { userId, contestId } = req.query; // 👈 change from req.body to req.query
+
+    if (!userId || !contestId) {
+        return res.status(400).json({ message: 'Missing userId or contestId' });
+    }
+
+    const bookmarkDoc = await Bookmark.findOne({ userId });
+
+    if (!bookmarkDoc) {
+        return res.status(404).json({ message: "No bookmarks found for this user" });
+    }
+
+    bookmarkDoc.contests = bookmarkDoc.contests.filter(c => c.contestId !== contestId);
+    await bookmarkDoc.save();
+
+    return res.status(200).json({ message: 'Bookmark removed successfully', bookmark: bookmarkDoc });
+});
+
+
+// =========================
+// 💚 Health Check
+// =========================
+app.get('/ping', (req, res) => {
+    res.send('🏓 Pong');
+});
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
