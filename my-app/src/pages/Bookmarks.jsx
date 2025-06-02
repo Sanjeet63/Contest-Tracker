@@ -22,7 +22,7 @@ const MyBookmarks = () => {
   useEffect(() => {
     const fetchBookmarks = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/bookmarks/get/${userId}`);
+        const res = await fetch(`${API_BASE}/api/bookmarks/get/${userId}`);
         if (!res.ok) throw new Error("Failed to fetch bookmarks");
         const data = await res.json();
         setBookmarks(data);
@@ -40,7 +40,7 @@ const MyBookmarks = () => {
     e.preventDefault();
     try {
       const res = await fetch(
-        `http://localhost:5000/api/bookmarks/remove?userId=${userId}&contestId=${contestId}`,
+        `${API_BASE}/api/bookmarks/remove?userId=${userId}&contestId=${contestId}`,
         { method: "DELETE" }
       );
       if (res.ok) {
