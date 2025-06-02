@@ -33,8 +33,6 @@ A full-featured MERN web application that tracks upcoming and past competitive p
 
 ## 📸 Screenshots
 
-> Add your screenshots inside `/screenshots` folder and update these links 👇
-
 | Home Page | Filter & Bookmarks | Reminder Setup |
 |-----------|--------------------|----------------|
 | ![Home](screenshots/Home.png) | ![Reminder](screenshots/Reminder.png) | ![BookMark](screenshots/Bookmark.png) |
