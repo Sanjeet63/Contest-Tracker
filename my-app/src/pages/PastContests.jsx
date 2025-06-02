@@ -5,6 +5,7 @@ import { FaClock, FaExternalLinkAlt, FaBookmark } from "react-icons/fa";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
+const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/+$/, "");
 const mapPlatform = (resourceStr) => {
   const lower = resourceStr.toLowerCase();
   switch (lower) {
@@ -44,7 +45,7 @@ export default function PastContestsPage() {
     }
 
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/api/past-contests`);
+      const res = await axios.get(`${API_BASE}/api/past-contests`);
       console.log("Past Contests API response:", res.data);
       if (res.data.objects) {
         const list = res.data.objects.map((contest) => ({
@@ -70,7 +71,7 @@ export default function PastContestsPage() {
       return;
     }
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/api/bookmarks/get/${userId}`);
+      const res = await axios.get(`${API_BASE}/api/bookmarks/get/${userId}`);
       setBookmarked(res.data.map((c) => String(c.contestId)));
     } catch (err) {
       console.error("❌ Error fetching bookmarks:", err);
@@ -126,7 +127,7 @@ export default function PastContestsPage() {
         },
       };
 
-      const response = await axios.post(`${import.meta.env.VITE_API_BASE}/api/bookmarks/add`, payload);
+      const response = await axios.post(`${API_BASE}/api/bookmarks/add`, payload);
 
       if (response.status === 201) {
         setBookmarked((prev) => [...prev, String(contest.id)]);

@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import Footer from "../components/Footer";
 import { useCallback } from "react";
 const categories = ["all", "codeforces", "leetcode", "atcoder", "codechef"];
-
+const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/+$/, "");
 const MyBookmarks = () => {
   const { userId } = useAuth();
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const MyBookmarks = () => {
   useEffect(() => {
     const fetchBookmarks = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE}/api/bookmarks/get/${userId}`);
+        const res = await fetch(`${API_BASE}/api/bookmarks/get/${userId}`);
         if (!res.ok) throw new Error("Failed to fetch bookmarks");
         const data = await res.json();
         setBookmarks(data);
@@ -41,7 +41,7 @@ const handleDelete = useCallback(async (e, contestId) => {
   e.preventDefault();
   try {
     const res = await fetch(
-      `${import.meta.env.VITE_API_BASE}/api/bookmarks/remove?userId=${userId}&contestId=${contestId}`,
+      `${API_BASE}/api/bookmarks/remove?userId=${userId}&contestId=${contestId}`,
       { method: "DELETE" }
     );
     if (res.ok) {

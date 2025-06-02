@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/+$/, "");
 
 const Feedback = () => {
   const [message, setMessage] = useState('');
@@ -11,7 +12,7 @@ const Feedback = () => {
     setStatus('Sending...');
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE}/api/feedback`, {
+      const res = await fetch(`${API_BASE}/api/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

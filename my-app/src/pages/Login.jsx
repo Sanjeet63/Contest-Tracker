@@ -4,6 +4,7 @@ import { auth, provider } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/+$/, "");
 
 export default function Login() {
   const { user } = useAuth();
@@ -23,7 +24,7 @@ export default function Login() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE}/api/auth/google`, {
+      const res = await fetch(`${API_BASE}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
