@@ -230,7 +230,6 @@ app.get("/api/upcoming", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch contests" });
     }
 });
-
 app.get("/", (req, res) => {
   res.send("Backend is live 🚀");
 });

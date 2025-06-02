@@ -64,7 +64,7 @@ export default function HomePage() {
       if (!userId) return;
       try {
         const res = await axios.get(
-          `${API_BASE}/api/bookmarks/get/${userId}`
+          `http://localhost:5000/api/bookmarks/get/${userId}`
         );
         setBookmarked(res.data.map((c) => String(c.contestId)));
       } catch (err) {
@@ -134,7 +134,7 @@ export default function HomePage() {
           url: contest.url,
         },
       };
-      const res = await axios.post("${API_BASE}/api/bookmarks/add", payload);
+      const res = await axios.post("http://localhost:5000/api/bookmarks/add", payload);
       if (res.status === 201) {
         setBookmarked((prev) => [...prev, contest.id]);
         toast.success("✅ Contest bookmarked successfully!");
@@ -159,7 +159,7 @@ export default function HomePage() {
     }
 
     try {
-      const res = await axios.post("${API_BASE}/api/reminder/add", {
+      const res = await axios.post("http://localhost:5000/api/reminder/add", {
         contestId: selectedContest.id,
         contestTitle: selectedContest.title,
         email,
