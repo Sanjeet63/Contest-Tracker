@@ -131,7 +131,7 @@ export default function About() {
             </p>
             <div className="flex justify-center md:justify-start gap-6 mt-4">
               <a
-                href="https://github.com/sanjeet"
+                href="https://github.com/Sanjeet63"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="GitHub"
@@ -139,7 +139,7 @@ export default function About() {
                 <FaGithub className="text-2xl text-gray-300 hover:text-pink-400 transition" />
               </a>
               <a
-                href="https://linkedin.com/in/sanjeet"
+                href="https://www.linkedin.com/in/sanjeet-patel-08785725a/"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="LinkedIn"
