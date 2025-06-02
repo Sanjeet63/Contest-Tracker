@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "proxy": "http://localhost:5000",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

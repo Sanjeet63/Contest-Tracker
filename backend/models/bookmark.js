@@ -1,6 +1,4 @@
-// models/Bookmark.js
 import mongoose from 'mongoose';
-
 const bookmarkSchema = new mongoose.Schema({
     userId: {
         type: String,
@@ -20,7 +18,6 @@ const bookmarkSchema = new mongoose.Schema({
     ]
 });
 
-// Pre-save hook to deduplicate contests array by contestId
 bookmarkSchema.pre('save', function(next) {
     const seen = new Set();
     this.contests = this.contests.filter(contest => {

@@ -1,19 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import ReminderDialog from "../components/ReminderDialog";
+import Footer from "../components/Footer";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import {
-  FaClock,
-  FaExternalLinkAlt,
-  FaBookmark,
-  FaBell,
-  FaBellSlash,
-} from "react-icons/fa";
-import ReminderDialog from "../components/ReminderDialog";
+import { FaClock, FaExternalLinkAlt, FaBookmark, FaBell, FaBellSlash, } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
-
-const API_KEY = "2d252b84482c405593f16c6c03c1e7f1c34a0e50";
-
 const mapPlatform = (resourceStr) => {
   const lower = resourceStr.toLowerCase();
   switch (lower) {
@@ -33,29 +25,22 @@ const mapPlatform = (resourceStr) => {
 export default function HomePage() {
   const { user, userId } = useAuth();
   const platforms = ["Codeforces", "LeetCode", "AtCoder", "CodeChef"];
+
   const [filter, setFilter] = useState(["All"]);
   const [loading, setLoading] = useState(true);
   const [contests, setContests] = useState([]);
-  const [bookmarked, setBookmarked] = useState([]); // IDs as string[]
+  const [bookmarked, setBookmarked] = useState([]);
+  const [reminderSetFor, setReminderSetFor] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedContest, setSelectedContest] = useState(null);
-  const [reminderSetFor, setReminderSetFor] = useState([]);
-
-
+  const [now, setNow] = useState(new Date());
   useEffect(() => {
     async function fetchContests() {
       try {
-        const response = await axios.get(
-          "https://clist.by/api/v4/contest/?upcoming=true&format=json&order_by=start&limit=50&resource_id__in=1,2,93,102",
-          {
-            headers: {
-              Authorization: `ApiKey sanjeet:${API_KEY}`,
-            },
-          }
-        );
-        if (response.data.objects && response.data.objects.length > 0) {
-          const upcomingContests = response.data.objects.map((contest) => ({
-            id: String(contest.id), // Ensure id is string
+        const response = await axios.get('/api/upcoming');
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          const upcomingContests = response.data.map((contest) => ({
+            id: String(contest.id),
             title: contest.event,
             platform: mapPlatform(contest.resource),
             date: contest.start,
@@ -64,6 +49,9 @@ export default function HomePage() {
             url: contest.href,
           }));
           setContests(upcomingContests);
+        }
+        else {
+          console.log("No contests found in API response.");
         }
         setLoading(false);
       } catch (error) {
@@ -88,26 +76,22 @@ export default function HomePage() {
     fetchBookmarks();
   }, [userId]);
 
-  const [now, setNow] = useState(new Date());
-
-  // To update every second
   useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
+    const interval = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+
   const getTimeLeft = (startTime) => {
     const start = new Date(startTime + "Z");
     const diff = start - now;
 
     if (diff <= 0) return "Started";
+    const h = Math.floor(diff / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const s = Math.floor((diff % (1000 * 60)) / 1000);
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-    return `${hours}h ${minutes}m ${seconds}s`;
+    return `${h}h ${m}m ${s}s`;
   };
 
 
@@ -139,7 +123,7 @@ export default function HomePage() {
 
     try {
       const payload = {
-        userId: userId,
+        userId,
         contest: {
           contestId: contest.id,
           title: contest.title,
@@ -150,19 +134,14 @@ export default function HomePage() {
           url: contest.url,
         },
       };
-
-      const response = await axios.post(
-        "http://localhost:5000/api/bookmarks/add",
-        payload
-      );
-
-      if (response.status === 201) {
+      const res = await axios.post("http://localhost:5000/api/bookmarks/add", payload);
+      if (res.status === 201) {
         setBookmarked((prev) => [...prev, contest.id]);
         toast.success("✅ Contest bookmarked successfully!");
       }
     } catch (err) {
       console.error(err);
-      toast.error("❌ Failed to bookmark contest!");
+      toast.error(" Failed to bookmark contest!");
     }
   };
 
@@ -171,148 +150,134 @@ export default function HomePage() {
     setShowDialog(true);
   };
 
-  const handleSetReminder = ({ email, time }) => {
+  const handleSetReminder = async ({ email, time }) => {
     if (reminderSetFor.includes(selectedContest.id)) {
       toast.error("Reminder already set for this contest!");
-    } else {
-      setReminderSetFor((prev) => [...prev, selectedContest.id]);
+      setShowDialog(false);
+      setSelectedContest(null);
+      return;
+    }
 
-      // mock api
-      axios.post("http://localhost:5000/api/reminder/add", {
+    try {
+      const res = await axios.post("http://localhost:5000/api/reminder/add", {
         contestId: selectedContest.id,
         contestTitle: selectedContest.title,
         email,
         minutesBefore: time,
+        contestStartTime: selectedContest.date,
       });
 
+      setReminderSetFor((prev) => [...prev, selectedContest.id]);
       toast.success(`Reminder set! We'll email ${email} ${time} mins before.`);
+    } catch (error) {
+      if (error.response && error.response.status === 409) {
+        toast.error("Reminder already exists for this contest and email!");
+      } else {
+        toast.error("Something went wrong while setting the reminder.");
+        console.error(error);
+      }
     }
+
     setShowDialog(false);
     setSelectedContest(null);
   };
+
 
   const filteredContests = filter.includes("All")
     ? contests
     : contests.filter((c) => filter.includes(c.platform));
 
   return (
-
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <h1 className="text-4xl font-bold text-white mb-4 text-center py-8 items-center justify-center flex">
-        🚩 Upcoming Contests
-      </h1>
-      {/* Filter Buttons */}
-      <div className="flex justify-center space-x-3 mb-10 flex-wrap">
-        <button
-          onClick={() => togglePlatform("All")}
-          className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${filter.includes("All")
-            ? "bg-pink-500 text-white"
-            : "bg-white/20 text-gray-300 hover:bg-white/30"
-            }`}
-        >
-          All
-        </button>
-        {platforms.map((p) => (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pt-20">
+      <div className="flex justify-center space-x-3 mb-10 flex-wrap pt-10 sm:pt-16">
+        {["All", ...platforms].map((p) => (
           <button
             key={p}
             onClick={() => togglePlatform(p)}
             className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${filter.includes(p)
               ? "bg-pink-500 text-white"
-              : "bg-white/20 text-gray-300 hover:bg-white/30"
-              }`}
+              : "bg-white/20 text-gray-300 hover:bg-white/30"}`}
           >
             {p}
           </button>
         ))}
       </div>
 
-      {/* Contests */}
-      <main className="container mx-auto py-8 sm:py-12 space-y-10 px-4">
+      <main className="container mx-auto py-8 sm:py-12 space-y-10 px-4 mb-5">
         <motion.section
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.8 }}
         >
-          {/* <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
-            🚩 Upcoming Contests
-          </h2> */}
           {loading ? (
             <p className="text-center text-gray-400">Loading contests...</p>
-          ) : (
+          ) : filteredContests.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              {filteredContests.length > 0 ? (
-                filteredContests.map((contest) => (
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    key={contest.id}
-                    className="relative flex flex-col justify-between p-6 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 hover:shadow-2xl transition-all h-full"
-                  >
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-semibold mb-2">
-                        {contest.title}
-                      </h3>
-                      <p className="flex items-center text-xs sm:text-sm text-gray-300 gap-2">
-                        <FaClock className="text-pink-500" />{" "}
-                        {new Intl.DateTimeFormat("en-IN", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                          timeZone: "Asia/Kolkata", // target timezone
-                        }).format(new Date(contest.date + "Z"))}
-                      </p>
-                    </div>
+              {filteredContests.map((contest) => (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  key={contest.id}
+                  className="relative flex flex-col justify-between p-6 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 hover:shadow-2xl transition-all h-full"
+                >
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-semibold mb-2">
+                      {contest.title}
+                    </h3>
+                    <p className="flex items-center text-xs sm:text-sm text-gray-300 gap-2">
+                      <FaClock className="text-pink-500" />
+                      {new Intl.DateTimeFormat("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                        timeZone: "Asia/Kolkata",
+                      }).format(new Date(contest.date + "Z"))}
+                    </p>
+                  </div>
 
-                    {/* Icons */}
-                    <div className="flex items-center space-x-4 pt-4 mt-auto">
-                      <p className="flex items-center text-xs sm:text-sm text-yellow-400 gap-2 mt-1">
-                        ⏳ {getTimeLeft(contest.date)}
-                      </p>
+                  <div className="flex items-center space-x-4 pt-4 mt-auto">
+                    <p className="flex items-center text-yellow-400 text-base gap-1">
+                      ⏳ <span className="font-semibold">{getTimeLeft(contest.date)}</span>
+                    </p>
+
+                    <button
+                      onClick={() => handleBookmark(contest)}
+                      aria-label="Bookmark Contest"
+                      className={`flex items-center text-sm transition ${bookmarked.includes(contest.id)
+                        ? "text-pink-500"
+                        : "text-gray-400 hover:text-pink-500"}`}
+                    >
+                      <FaBookmark size={18} />
+                    </button>
+
+                    {reminderSetFor.includes(contest.id) ? (
+                      <button disabled className="flex items-center gap-1 text-gray-400 text-sm cursor-not-allowed">
+                        <FaBellSlash size={18} /> <span>Reminder Set</span>
+                      </button>
+                    ) : (
                       <button
-                        onClick={() => handleBookmark(contest)}
-                        disabled={bookmarked.includes(contest.id)}
+                        onClick={() => openReminderDialog(contest)}
+                        className="flex items-center gap-1 text-gray-400 hover:text-pink-400 transition text-sm"
                       >
-                        <FaBookmark
-                          className={`${bookmarked.includes(contest.id)
-                            ? "text-pink-500"
-                            : "text-gray-400"
-                            } hover:text-pink-500 transition`}
-                        />
+                        <FaBell size={18} /> <span>Remind Me</span>
                       </button>
+                    )}
 
-                      <button onClick={() => openReminderDialog(contest)}>
-                        {reminderSetFor.includes(contest.id) ? (
-                          <button
-                            disabled
-                            className="flex items-center gap-1 text-gray-400 cursor-not-allowed"
-                          >
-                            <FaBellSlash /> Reminder Set
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => openReminderDialog(contest)}
-                            className="flex items-center gap-1 hover:text-pink-400"
-                          >
-                            <FaBell /> Remind Me
-                          </button>
-                        )}
-
-                      </button>
-                      <a
-                        href={contest.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-auto"
-                      >
-                        <FaExternalLinkAlt className="text-gray-400 hover:text-pink-500 transition" />
-                      </a>
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <p className="text-center text-gray-400 col-span-full">
-                  No contests found for selected platforms.
-                </p>
-              )}
+                    <a
+                      href={contest.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto flex items-center text-gray-400 hover:text-pink-500 transition"
+                      aria-label="Open Contest Link"
+                    >
+                      <FaExternalLinkAlt size={18} />
+                    </a>
+                  </div>
+                </motion.div>
+              ))}
             </div>
+          ) : (
+            <p className="text-center text-gray-400 col-span-full">
+              No contests found for selected platforms.
+            </p>
           )}
         </motion.section>
       </main>
@@ -324,6 +289,8 @@ export default function HomePage() {
           onSetReminder={handleSetReminder}
         />
       )}
+
+      <Footer />
     </div>
   );
 }

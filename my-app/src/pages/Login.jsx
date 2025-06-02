@@ -4,7 +4,6 @@ import { auth, provider } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import axios from "axios";
 
 export default function Login() {
   const { user } = useAuth();
@@ -24,10 +23,6 @@ export default function Login() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      console.log('🔥 Firebase user:', user);
-      
-
-      // Send to backend to create/find user in MongoDB
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: {
@@ -42,18 +37,14 @@ export default function Login() {
       });
 
       const backendResponse = await res.json();
-      console.log('📡 Backend response:', backendResponse);
 
       setLoading(false);
       navigate("/");
-
     } catch (err) {
-      console.error(err);
       setError('Google sign-in failed!');
       setLoading(false);
     }
-};
-
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden px-4">
