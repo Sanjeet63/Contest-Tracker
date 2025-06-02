@@ -46,7 +46,7 @@ export default function HomePage() {
           setLoading(false);
           return;
         }
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE}/api/upcoming`);
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE}api/upcoming`);
         if (Array.isArray(response.data) && response.data.length > 0) {
           const upcomingContests = response.data.map((contest) => ({
             id: String(contest.id),
