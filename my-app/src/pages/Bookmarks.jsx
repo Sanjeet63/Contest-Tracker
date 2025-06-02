@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Trash2, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import Footer from "../components/Footer";
-
+import { useCallback } from "react";
 const categories = ["all", "codeforces", "leetcode", "atcoder", "codechef"];
 
 const MyBookmarks = () => {
@@ -35,24 +35,26 @@ const MyBookmarks = () => {
 
     if (userId) fetchBookmarks();
   }, [userId]);
+ 
 
-  const handleDelete = async (e, contestId) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/bookmarks/remove?userId=${userId}&contestId=${contestId}`,
-        { method: "DELETE" }
-      );
-      if (res.ok) {
-        setBookmarks((prev) => prev.filter((c) => c.contestId !== contestId));
-      } else {
-        const data = await res.json();
-        alert("Error removing bookmark: " + data.message);
-      }
-    } catch (err) {
-      console.error("Error deleting bookmark:", err);
+const handleDelete = useCallback(async (e, contestId) => {
+  e.preventDefault();
+  try {
+    const res = await fetch(
+      `http://localhost:5000/api/bookmarks/remove?userId=${userId}&contestId=${contestId}`,
+      { method: "DELETE" }
+    );
+    if (res.ok) {
+      setBookmarks((prev) => prev.filter((c) => c.contestId !== contestId));
+    } else {
+      const data = await res.json();
+      alert("Error removing bookmark: " + data.message);
     }
-  };
+  } catch (err) {
+    console.error("Error deleting bookmark:", err);
+  }
+}, [userId]);
+
 
   const filteredBookmarks =
     category === "all"

@@ -64,7 +64,7 @@ app.get('/api/bookmarks/get/:userId', async (req, res) => {
 });
 
 app.delete('/api/bookmarks/remove', async (req, res) => {
-    const { userId, contestId } = req.query; 
+    const { userId, contestId } = req.query;
 
     if (!userId || !contestId) {
         return res.status(400).json({ message: 'Missing userId or contestId' });
@@ -104,6 +104,33 @@ app.post("/api/reminder/add", async (req, res) => {
         return res.status(500).json({ message: "Server error while saving reminder" });
     }
 });
+app.get("/api/reminders/get", async (req, res) => {
+    try {
+        const reminders = await Reminder.find({ sent: false });
+        if (reminders.length === 0) {
+            return res.status(404).json({ message: "No pending reminders found" });
+        }
+        return res.status(200).json(reminders);
+    } catch (error) {
+        console.error("❌ Error fetching reminders:", error);
+        return res.status(500).json({ message: "Server error while fetching reminders" });
+    }
+});
+
+app.get("/api/reminders/get/:email", async (req, res) => {
+    const { email } = req.params;
+    try {
+        const reminders = await Reminder.find({ email, sent: false });
+        if (reminders.length === 0) {
+            return res.status(404).json({ message: "No pending reminders found for this email" });
+        }
+        return res.status(200).json(reminders);
+    } catch (error) {
+        console.error("❌ Error fetching reminders:", error);
+        return res.status(500).json({ message: "Server error while fetching reminders" });
+    }
+});
+
 
 app.post("/api/contest/:id/remind", async (req, res) => {
     const { id } = req.params;
@@ -138,12 +165,12 @@ app.post('/api/reminders/send-due', async (req, res) => {
 app.post('/api/reminder/test-add', async (req, res) => {
     try {
         const now = new Date();
-        const contestStartTime = new Date(now.getTime() + 11 * 60 * 1000); 
+        const contestStartTime = new Date(now.getTime() + 11 * 60 * 1000);
 
         const testReminder = new Reminder({
             contestId: "test123",
             contestTitle: "Test Contest for Reminder",
-            email: "sanjeet22444@iiitd.ac.in",  
+            email: "sanjeet22444@iiitd.ac.in",
             minutesBefore: 10,
             contestStartTime: contestStartTime,
             sent: false,
@@ -231,7 +258,7 @@ app.get("/api/upcoming", async (req, res) => {
     }
 });
 app.get("/", (req, res) => {
-  res.send("Backend is live 🚀");
+    res.send("Backend is live 🚀");
 });
 
 

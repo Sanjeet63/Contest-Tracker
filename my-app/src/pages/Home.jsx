@@ -37,6 +37,15 @@ export default function HomePage() {
   useEffect(() => {
     async function fetchContests() {
       try {
+        const cached = localStorage.getItem("upcomingContests");
+        const cacheTimestamp = localStorage.getItem("upcomingContestsTimestamp");
+        const nowTimestamp = Date.now();
+        if (cached && cacheTimestamp && nowTimestamp - cacheTimestamp < 60 * 60 * 1000) {
+          const contestsFromCache = JSON.parse(cached);
+          setContests(contestsFromCache);
+          setLoading(false);
+          return;
+        }
         const response = await axios.get('/api/upcoming');
         if (Array.isArray(response.data) && response.data.length > 0) {
           const upcomingContests = response.data.map((contest) => ({
@@ -48,9 +57,11 @@ export default function HomePage() {
             duration: contest.duration,
             url: contest.href,
           }));
+
           setContests(upcomingContests);
-        }
-        else {
+          localStorage.setItem("upcomingContests", JSON.stringify(upcomingContests));
+          localStorage.setItem("upcomingContestsTimestamp", nowTimestamp.toString());
+        } else {
           console.log("No contests found in API response.");
         }
         setLoading(false);
@@ -75,6 +86,7 @@ export default function HomePage() {
     fetchContests();
     fetchBookmarks();
   }, [userId]);
+
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -146,18 +158,16 @@ export default function HomePage() {
   };
 
   const openReminderDialog = (contest) => {
-    setSelectedContest(contest);
-    setShowDialog(true);
+  if (!user) {
+    toast.error("Please login to set a reminder!");
+    return;
+  }
+  setSelectedContest(contest);
+  setShowDialog(true);
   };
 
-  const handleSetReminder = async ({ email, time }) => {
-    if (reminderSetFor.includes(selectedContest.id)) {
-      toast.error("Reminder already set for this contest!");
-      setShowDialog(false);
-      setSelectedContest(null);
-      return;
-    }
 
+  const handleSetReminder = async ({ email, time }) => {
     try {
       const res = await axios.post("http://localhost:5000/api/reminder/add", {
         contestId: selectedContest.id,
@@ -167,19 +177,19 @@ export default function HomePage() {
         contestStartTime: selectedContest.date,
       });
 
+      toast.success(`✅ Reminder set! We'll email ${email} ${time} mins before.`);
       setReminderSetFor((prev) => [...prev, selectedContest.id]);
-      toast.success(`Reminder set! We'll email ${email} ${time} mins before.`);
     } catch (error) {
-      if (error.response && error.response.status === 409) {
-        toast.error("Reminder already exists for this contest and email!");
+      if (error.response?.status === 409) {
+        toast.error("⛔ Reminder already exists for this contest and email!");
       } else {
-        toast.error("Something went wrong while setting the reminder.");
-        console.error(error);
+        toast.error("❌ Something went wrong while setting the reminder.");
+        console.error("Error setting reminder:", error);
       }
+    } finally {
+      setShowDialog(false);
+      setSelectedContest(null);
     }
-
-    setShowDialog(false);
-    setSelectedContest(null);
   };
 
 

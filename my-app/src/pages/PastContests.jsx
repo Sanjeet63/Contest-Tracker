@@ -30,46 +30,58 @@ export default function PastContestsPage() {
   const [pastContests, setPastContests] = useState([]);
   const [bookmarked, setBookmarked] = useState([]);
 
-  useEffect(() => {
-    async function fetchContests() {
+ useEffect(() => {
+  async function fetchContests() {
+    const cached = localStorage.getItem("pastContests");
+    if (cached) {
       try {
-        const res = await axios.get(`/api/past-contests`);
-        console.log("Past Contests API response:", res.data); 
-        if (res.data.objects) {
-          const list = res.data.objects.map((contest) => ({
-            id: contest.id,
-            title: contest.event,
-            platform: mapPlatform(typeof contest.resource === "string" ? contest.resource : contest.resource?.host || ""),
-            date: contest.start,
-            url: contest.href,
-          }));
-          setPastContests(list);
-        }
-      } catch (error) {
-        console.error("Error fetching contests:", error);
-      } finally {
+        const parsed = JSON.parse(cached);
+        setPastContests(parsed);
         setLoading(false);
-      }
-    }
-
-    async function fetchBookmarks() {
-      if (!userId) {
-        setBookmarksLoading(false);
-        return;
-      }
-      try {
-        const res = await axios.get(`http://localhost:5000/api/bookmarks/get/${userId}`);
-        setBookmarked(res.data.map((c) => String(c.contestId)));
       } catch (err) {
-        console.error("❌ Error fetching bookmarks:", err);
-      } finally {
-        setBookmarksLoading(false);
+        console.error("Error parsing cached contests:", err);
       }
     }
 
-    fetchContests();
-    fetchBookmarks();
-  }, [userId]);
+    try {
+      const res = await axios.get(`/api/past-contests`);
+      console.log("Past Contests API response:", res.data);
+      if (res.data.objects) {
+        const list = res.data.objects.map((contest) => ({
+          id: contest.id,
+          title: contest.event,
+          platform: mapPlatform(typeof contest.resource === "string" ? contest.resource : contest.resource?.host || ""),
+          date: contest.start,
+          url: contest.href,
+        }));
+        setPastContests(list);
+        localStorage.setItem("pastContests", JSON.stringify(list));
+      }
+    } catch (error) {
+      console.error("Error fetching contests:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchBookmarks() {
+    if (!userId) {
+      setBookmarksLoading(false);
+      return;
+    }
+    try {
+      const res = await axios.get(`http://localhost:5000/api/bookmarks/get/${userId}`);
+      setBookmarked(res.data.map((c) => String(c.contestId)));
+    } catch (err) {
+      console.error("❌ Error fetching bookmarks:", err);
+    } finally {
+      setBookmarksLoading(false);
+    }
+  }
+
+  fetchContests();
+  fetchBookmarks();
+}, [userId]);
 
   const togglePlatform = (platform) => {
     if (platform === "All") {
