@@ -23,7 +23,7 @@ export default function Login() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      const res = await fetch('/api/auth/google', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,6 +35,9 @@ export default function Login() {
           photoURL: user.photoURL,
         }),
       });
+      if (!res.ok) {
+        throw new Error("Backend sign-in failed");
+      }
 
       const backendResponse = await res.json();
 

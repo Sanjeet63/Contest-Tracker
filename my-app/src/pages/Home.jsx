@@ -46,7 +46,7 @@ export default function HomePage() {
           setLoading(false);
           return;
         }
-        const response = await axios.get('/api/upcoming');
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE}/api/upcoming`);
         if (Array.isArray(response.data) && response.data.length > 0) {
           const upcomingContests = response.data.map((contest) => ({
             id: String(contest.id),
@@ -75,7 +75,7 @@ export default function HomePage() {
       if (!userId) return;
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/bookmarks/get/${userId}`
+          `${import.meta.env.VITE_API_BASE}/api/bookmarks/get/${userId}`
         );
         setBookmarked(res.data.map((c) => String(c.contestId)));
       } catch (err) {
@@ -146,7 +146,7 @@ export default function HomePage() {
           url: contest.url,
         },
       };
-      const res = await axios.post("http://localhost:5000/api/bookmarks/add", payload);
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE}/api/bookmarks/add`, payload);
       if (res.status === 201) {
         setBookmarked((prev) => [...prev, contest.id]);
         toast.success("✅ Contest bookmarked successfully!");
@@ -169,7 +169,7 @@ export default function HomePage() {
 
   const handleSetReminder = async ({ email, time }) => {
     try {
-      const res = await axios.post("http://localhost:5000/api/reminder/add", {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE}/api/reminder/add`, {
         contestId: selectedContest.id,
         contestTitle: selectedContest.title,
         email,

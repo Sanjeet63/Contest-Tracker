@@ -44,7 +44,7 @@ export default function PastContestsPage() {
     }
 
     try {
-      const res = await axios.get(`/api/past-contests`);
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/api/past-contests`);
       console.log("Past Contests API response:", res.data);
       if (res.data.objects) {
         const list = res.data.objects.map((contest) => ({
@@ -70,7 +70,7 @@ export default function PastContestsPage() {
       return;
     }
     try {
-      const res = await axios.get(`http://localhost:5000/api/bookmarks/get/${userId}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/api/bookmarks/get/${userId}`);
       setBookmarked(res.data.map((c) => String(c.contestId)));
     } catch (err) {
       console.error("❌ Error fetching bookmarks:", err);
@@ -126,7 +126,7 @@ export default function PastContestsPage() {
         },
       };
 
-      const response = await axios.post("http://localhost:5000/api/bookmarks/add", payload);
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE}/api/bookmarks/add`, payload);
 
       if (response.status === 201) {
         setBookmarked((prev) => [...prev, String(contest.id)]);
