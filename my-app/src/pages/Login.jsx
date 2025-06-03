@@ -24,7 +24,7 @@ export default function Login() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      const res = await fetch(`${API_BASE}/api/auth/google`, {
+      const res = await fetch(`${API_BASE}/api/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

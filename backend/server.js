@@ -20,6 +20,23 @@ mongoose.connect(process.env.MONGO_URI, { dbName: 'cphub' })
     .then(() => console.log('✅ MongoDB Connected!'))
     .catch(err => console.log('❌ MongoDB Connection Error: ', err));
 
+app.post('/api/google', async (req, res) => {
+    try {
+        const { uid, email, displayName, photoURL } = req.body;
+
+        let user = await User.findOne({ uid });
+
+        if (!user) {
+            user = await User.create({ uid, email, displayName, photoURL });
+        }
+
+        res.status(200).json({ message: "User signed in", user });
+    } catch (error) {
+        console.error("Google auth error:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
 app.post('/api/bookmarks/add', async (req, res) => {
     try {
         const { userId, contest } = req.body;
