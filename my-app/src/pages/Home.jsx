@@ -198,7 +198,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pt-20">
-      <div className="flex justify-center space-x-3 mb-10 flex-wrap pt-10 sm:pt-16">
+      <div className="flex justify-center space-x-3 mb-16 sm:mb-20 flex-wrap pt-14 sm:pt-20">
         {["All", ...platforms].map((p) => (
           <button
             key={p}
