@@ -108,7 +108,7 @@ app.post("/api/reminder/add", async (req, res) => {
             return res.status(409).json({ message: "Reminder already exists for this contest and email" });
         }
         const originalTime = new Date(contestStartTime)
-        const contestStartTimeUTC = new Date(originalTime.getTime() + 5.5 * 60 * 60 * 1000);
+        const contestStartTimeUTC = new Date(originalTime.getTime());
         const newReminder = new Reminder({
             contestId,
             contestTitle,
