@@ -204,7 +204,7 @@ export default function HomePage() {
           <button
             key={p}
             onClick={() => togglePlatform(p)}
-            className={`px-4 py-2 rounded-full text-sm sm:text-base font-semibold ${filter.includes(p)
+            className={`px-5 py-2 rounded-full font-medium transition-all duration-300 shadow-md ${filter.includes(p)
               ? "bg-pink-500 text-white"
               : "bg-white/20 text-gray-300 hover:bg-white/30"}`}
           >
