@@ -31,10 +31,30 @@ export async function sendDueReminders() {
 
   for (const reminder of dueReminders) {
     try {
+      const contestIST = new Date(reminder.contestStartTime.getTime() + 5.5 * 60 * 60 * 1000);
+      const formattedIST = contestIST.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+      const emailText = 
+      `
+Hey there! 👋,
+
+⏰ This is a friendly reminder that the contest:
+
+${reminder.contestTitle} is scheduled to start at: ${formattedIST} (IST)
+
+You had set a reminder ${reminder.minutesBefore} minutes before the contest.
+
+Make sure you're ready! 🚀  
+Wishing you the best of luck!
+
+—
+Team CP Hub
+      `.trim();
+
       await sendEmail({
         to: reminder.email,
-        subject: `⏰ Reminder: ${reminder.contestTitle}`,
-        text: `Contest "${reminder.contestTitle}" starts at ${reminder.contestStartTime.toISOString()}. This is your reminder set ${reminder.minutesBefore} minutes before.`,
+        subject: `⏰ Reminder: ${reminder.contestTitle} starts soon!`,
+        text: emailText,
       });
 
       await Reminder.deleteOne({ _id: reminder._id });
@@ -43,4 +63,6 @@ export async function sendDueReminders() {
       console.error(`❌ Failed to send reminder to ${reminder.email}`, err);
     }
   }
+
+
 }
