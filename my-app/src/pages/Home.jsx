@@ -213,7 +213,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      <main className="container mx-auto py-6 sm:py-12 space-y-10 px-4 mb-5">
+      <main className="container mx-auto py-4 sm:py-12 space-y-10 px-4 mb-5">
         <motion.section
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
