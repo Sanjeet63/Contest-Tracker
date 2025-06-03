@@ -198,7 +198,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pt-20">
-      <div className="flex justify-center flex-wrap gap-x-3 gap-y-3 mb-16 sm:mb-20 pt-10 sm:pt-20">
+      <div className="flex justify-center flex-wrap gap-x-3 gap-y-3 mb-16 sm:mb-16 pt-10 sm:pt-20">
 
         {["All", ...platforms].map((p) => (
           <button
@@ -213,7 +213,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      <main className="container mx-auto py-8 sm:py-12 space-y-10 px-4 mb-5">
+      <main className="container mx-auto py-6 sm:py-12 space-y-10 px-4 mb-5">
         <motion.section
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
