@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import cors from "cors";
 import Bookmark from "./models/bookmark.js";
 import Reminder from "./models/reminder.js";
+import User from "./models/user.js";
 import axios from "axios";
 import './reminderCron.js'
 import { sendDueReminders } from './reminderService.js';
