@@ -63,6 +63,4 @@ Team CP Hub
       console.error(`❌ Failed to send reminder to ${reminder.email}`, err);
     }
   }
-
-
 }
