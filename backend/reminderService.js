@@ -31,7 +31,7 @@ export async function sendDueReminders() {
 
   for (const reminder of dueReminders) {
     try {
-      const contestIST = new Date(reminder.contestStartTime.getTime() + 5.5 * 60 * 60 * 1000);
+      const contestIST = new Date(reminder.contestStartTime.getTime());
       const formattedIST = contestIST.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
       const emailText = 
