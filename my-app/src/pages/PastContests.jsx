@@ -45,7 +45,7 @@ export default function PastContestsPage() {
     }
 
     try {
-      const res = await axios.get(`${API_BASE}/api/past-contests`);
+      const res = await axios.get(`${API_BASE}/api/contests/past-contests`);
       console.log("Past Contests API response:", res.data);
       if (res.data.objects) {
         const list = res.data.objects.map((contest) => ({
