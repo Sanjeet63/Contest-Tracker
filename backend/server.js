@@ -5,10 +5,11 @@ import { connectDB } from "./config/db.js";
 import "./reminderCron.js";
 import Reminder from "./models/reminder.js";
 
-
 import authRoutes from "./routes/authRoutes.js";
 import bookmarkRoutes from "./routes/bookmarkRoutes.js";
 import reminderRoutes from "./routes/reminderRoutes.js";
+import contestRoutes from "./routes/contestRoutes.js";
+import feedbackRoutes from "./routes/feedbackRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -22,6 +23,8 @@ app.use(express.json());
 app.use("/api/google", authRoutes);
 app.use("/api/bookmarks", bookmarkRoutes);
 app.use("/api/reminder", reminderRoutes);
+app.use("/api/contests", contestRoutes);
+app.use("/api/feedback", feedbackRoutes);
 
 app.post('/api/reminder/test-add', async (req, res) => {
     try {
