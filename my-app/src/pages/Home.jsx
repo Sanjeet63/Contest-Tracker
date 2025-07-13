@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import ReminderDialog from "../components/ReminderDialog";
 import Footer from "../components/Footer";
+import TimeLeft from "../components/TimeLeft";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { FaClock, FaExternalLinkAlt, FaBookmark, FaBell, FaBellSlash, } from "react-icons/fa";
@@ -34,7 +35,6 @@ export default function HomePage() {
   const [reminderSetFor, setReminderSetFor] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedContest, setSelectedContest] = useState(null);
-  const [now, setNow] = useState(new Date());
   useEffect(() => {
     async function fetchContests() {
       try {
@@ -85,25 +85,6 @@ export default function HomePage() {
     fetchContests();
     fetchBookmarks();
   }, [userId]);
-
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-
-  const getTimeLeft = (startTime) => {
-    const start = new Date(startTime + "Z");
-    const diff = start - now;
-
-    if (diff <= 0) return "Started";
-    const h = Math.floor(diff / (1000 * 60 * 60));
-    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const s = Math.floor((diff % (1000 * 60)) / 1000);
-
-    return `${h}h ${m}m ${s}s`;
-  };
 
 
   const togglePlatform = (platform) => {
@@ -243,9 +224,7 @@ export default function HomePage() {
                   </div>
 
                   <div className="flex items-center space-x-4 pt-4 mt-auto">
-                    <p className="flex items-center text-yellow-400 text-base gap-1">
-                      ⏳ <span className="font-semibold">{getTimeLeft(contest.date)}</span>
-                    </p>
+                    <TimeLeft startTime={contest.date} />
 
                     <button
                       onClick={() => handleBookmark(contest)}

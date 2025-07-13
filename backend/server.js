@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 import { connectDB } from "./config/db.js";
 import "./reminderCron.js";
 import Reminder from "./models/reminder.js";
@@ -18,6 +19,15 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
 
 
 app.use("/api", authRoutes);
