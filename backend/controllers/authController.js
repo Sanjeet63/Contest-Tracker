@@ -3,15 +3,12 @@ import User from "../models/user.js";
 export const googleAuth = async (req, res) => {
     try {
         const { uid, email, displayName, photoURL } = req.body;
-        let user = await User.findOne({ uid });
 
-        if (user) {
-            user.displayName = displayName;
-            user.photoURL = photoURL;
-            await user.save();
-        } else {
-            user = await User.create({ uid, email, displayName, photoURL });
-        }
+        const user = await User.findOneAndUpdate(
+            { uid },
+            { $set: { email, displayName, photoURL } },
+            { new: true, upsert: true }
+        );
 
         res.status(200).json({ message: "User signed in", user });
     } catch (error) {
