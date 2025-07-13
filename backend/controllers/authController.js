@@ -5,7 +5,11 @@ export const googleAuth = async (req, res) => {
         const { uid, email, displayName, photoURL } = req.body;
         let user = await User.findOne({ uid });
 
-        if (!user) {
+        if (user) {
+            user.displayName = displayName;
+            user.photoURL = photoURL;
+            await user.save();
+        } else {
             user = await User.create({ uid, email, displayName, photoURL });
         }
 
