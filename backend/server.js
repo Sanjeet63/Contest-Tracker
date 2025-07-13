@@ -20,7 +20,7 @@ app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 
 
-app.use("/api/google", authRoutes);
+app.use("/api", authRoutes);
 app.use("/api/bookmarks", bookmarkRoutes);
 app.use("/api/reminder", reminderRoutes);
 app.use("/api/contests", contestRoutes);
