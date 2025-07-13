@@ -7,20 +7,13 @@ export const addBookmark = async (req, res) => {
             return res.status(400).json({ message: 'Missing userId or contest data' });
         }
 
-        const bookmarkDoc = await Bookmark.findOne({ userId });
-        if (bookmarkDoc) {
-            const alreadyExists = bookmarkDoc.contests.some(c => c.contestId === contest.contestId);
-            if (alreadyExists) {
-                return res.status(400).json({ message: 'Contest already bookmarked!' });
-            }
-            bookmarkDoc.contests.push(contest);
-            await bookmarkDoc.save();
-            return res.status(201).json({ message: 'Bookmark added successfully!', bookmark: bookmarkDoc });
-        } else {
-            const newBookmark = new Bookmark({ userId, contests: [contest] });
-            await newBookmark.save();
-            return res.status(201).json({ message: 'Bookmark added successfully!', bookmark: newBookmark });
-        }
+        const updatedBookmark = await Bookmark.findOneAndUpdate(
+            { userId },
+            { $addToSet: { contests: contest } },
+            { new: true, upsert: true }
+        );
+
+        return res.status(201).json({ message: 'Bookmark added successfully!', bookmark: updatedBookmark });
     } catch (err) {
         console.error("❌ Error adding bookmark:", err);
         return res.status(500).json({ message: 'Server error while adding bookmark' });
@@ -48,12 +41,20 @@ export const removeBookmark = async (req, res) => {
         return res.status(400).json({ message: 'Missing userId or contestId' });
     }
 
-    const bookmarkDoc = await Bookmark.findOne({ userId });
-    if (!bookmarkDoc) {
-        return res.status(404).json({ message: "No bookmarks found for this user" });
-    }
+    try {
+        const updatedBookmark = await Bookmark.findOneAndUpdate(
+            { userId },
+            { $pull: { contests: { contestId: contestId } } },
+            { new: true }
+        );
 
-    bookmarkDoc.contests = bookmarkDoc.contests.filter(c => c.contestId !== contestId);
-    await bookmarkDoc.save();
-    return res.status(200).json({ message: 'Bookmark removed successfully', bookmark: bookmarkDoc });
+        if (!updatedBookmark) {
+            return res.status(404).json({ message: "No bookmarks found for this user" });
+        }
+
+        return res.status(200).json({ message: 'Bookmark removed successfully', bookmark: updatedBookmark });
+    } catch (err) {
+        console.error("❌ Error removing bookmark:", err);
+        return res.status(500).json({ message: 'Server error while removing bookmark' });
+    }
 };
