@@ -6,6 +6,7 @@ import PastContests from "./pages/PastContests";
 import Login from "./pages/Login";
 import About from "./pages/About";
 import Feedback from "./pages/Feedback";
+import Chatbot from "./components/Chatbot";
 import { Toaster } from "react-hot-toast";
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
         <BrowserRouter>
             <Navbar />
             <Toaster position="top-right" reverseOrder={false} />
+            <Chatbot />
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/bookmarks" element={<Bookmarks />} />

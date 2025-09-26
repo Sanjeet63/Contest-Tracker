@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  background: pink;
+  background: #f8fafc; /* Light gray background */
 }
 .button-icon {
   @apply flex items-center gap-1 text-sm font-semibold transition;

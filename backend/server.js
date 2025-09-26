@@ -11,6 +11,7 @@ import bookmarkRoutes from "./routes/bookmarkRoutes.js";
 import reminderRoutes from "./routes/reminderRoutes.js";
 import contestRoutes from "./routes/contestRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
+import chatbotRoutes from "./routes/chatbotRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -35,6 +36,7 @@ app.use("/api/bookmarks", bookmarkRoutes);
 app.use("/api/reminder", reminderRoutes);
 app.use("/api/contests", contestRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/chatbot", chatbotRoutes);
 
 app.post('/api/reminder/test-add', async (req, res) => {
     try {
