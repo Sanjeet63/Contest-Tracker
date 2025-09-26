@@ -13,6 +13,14 @@ export const handleChatbotQuery = async (req, res) => {
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
+        // Fetch user context
+        let userContext = '';
+        if (userId) {
+            const user = await User.findOne({ uid: userId });
+            const bookmarks = await Bookmark.find({ userId });
+            userContext = `User details: Name: ${user?.displayName || 'User'}, Email: ${user?.email || 'N/A'}, Bookmarks: ${bookmarks.map(b => b.contestName).join(', ') || 'None'}, AI Project: ${user?.aiProjectLink || 'None'}. `;
+        }
+
         const intentPrompt = `
 Classify the user query into one of these intents:
 past_contests, upcoming_contests, suggestions, submit_ai_project, contest_info, practice_advice, strategy, problem_help
@@ -21,7 +29,7 @@ Respond with only the intent.
         const intentResult = await model.generateContent([intentPrompt, query]);
         const intent = intentResult.response.text().trim().toLowerCase();
 
-        let context = '';
+        let context = userContext;
         let data = {};
 
         if (intent === 'past_contests') {
@@ -66,6 +74,7 @@ Respond with only the intent.
 
         const responsePrompt = `
 You are Contest AI Assistant for CP Hub, a friendly guide for competitive programming.
+${userContext ? `User Context: ${userContext}` : ''}
 - Always answer in plain, clear text in 2-4 sentences.
 - Never return JSON, markdown, or asterisks.
 - Give actionable advice, tips, or resources whenever possible.
@@ -75,12 +84,13 @@ You are Contest AI Assistant for CP Hub, a friendly guide for competitive progra
 - If user asks about problem types, explain concepts and point to similar problems for practice.
 - If user asks about upcoming contests, provide dates, platforms, and level of difficulty.
 - Always keep tone simple, encouraging, and student-friendly.
+- Reference user context when relevant to make conversations relatable.
 `;
 
         const responseResult = await model.generateContent([responsePrompt, query, context]);
         const reply = responseResult.response.text() || "I'm here to guide you with competitive programming contests.";
 
-        const chat = new Chat({ userMessage: query, botResponse: reply });
+        const chat = new Chat({ userId: userId || 'anonymous', userMessage: query, botResponse: reply });
         await chat.save();
 
         res.json({ reply, intent, data });
@@ -93,22 +103,32 @@ You are Contest AI Assistant for CP Hub, a friendly guide for competitive progra
 
 export const handleChat = async (req, res) => {
     try {
-        const { message } = req.body;
+        const { message, userId } = req.body;
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-002" });
+
+        // Fetch user context
+        let userContext = '';
+        if (userId) {
+            const user = await User.findOne({ uid: userId });
+            const bookmarks = await Bookmark.find({ userId });
+            userContext = `User details: Name: ${user?.displayName || 'User'}, Email: ${user?.email || 'N/A'}, Bookmarks: ${bookmarks.map(b => b.contestName).join(', ') || 'None'}, AI Project: ${user?.aiProjectLink || 'None'}. `;
+        }
 
         const systemPrompt = `
 You are a helpful contest guide assistant for competitive programming students.
+${userContext ? `User Context: ${userContext}` : ''}
 - Always reply in simple plain text (no bold, no lists, no markdown).
 - Use short and clear sentences (2–4 lines).
 - Keep a friendly, informative, and professional tone.
 - Help with questions about past and upcoming contests, preparation tips, and strategies.
 - Encourage learning and practice.
+- Reference user context when relevant to make conversations relatable.
 `;
 
         const result = await model.generateContent([systemPrompt, message]);
         const botResponse = result.response.text() || "I'm here to guide you with contests.";
 
-        const chat = new Chat({ userMessage: message, botResponse });
+        const chat = new Chat({ userId: userId || 'anonymous', userMessage: message, botResponse });
         await chat.save();
 
         res.json({ botResponse });
